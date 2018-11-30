@@ -6,13 +6,16 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <link rel="icon" href="<%= BASE_URL %>favicon.ico">
     <title>cultural-map</title>
-    <link rel="stylesheet" href="/vendors/css/leaflet.css">
-    <link rel="stylesheet" href="/vendors/css/leaflet-measure.css">
-    <link rel="stylesheet" href="/vendors/css/MarkerCluster.css">
-    <link rel="stylesheet" href="/vendors/css/MarkerCluster.Default.css">
-    <link rel="stylesheet" href="/vendors/css/custom.css">
+    <link rel="stylesheet" href="vendors/css/leaflet.css">
+    <link rel="stylesheet" href="vendors/css/leaflet-measure.css">
+    <link rel="stylesheet" href="vendors/css/MarkerCluster.css">
+    <link rel="stylesheet" href="vendors/css/MarkerCluster.Default.css">
+    <link rel="stylesheet" href="vendors/css/custom.css">
     <script src="vendors/js/vendor/leaflet-src.js" crossorigin=""></script>
     <script src="vendors/js/vendor/leaflet.markercluster.js" crossorigin=""></script>
+    <script>
+      window.baseUrl = "<%= BASE_URL %>";
+    </script>
   </head>
   <body>
     <noscript>
