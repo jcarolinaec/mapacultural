@@ -1,4 +1,4 @@
-# cultural-map
+# mapa-cultural
 
 ## Project setup
 ```
