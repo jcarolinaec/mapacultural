@@ -37,7 +37,8 @@ export default {
         features: []
       };
       try {
-        const response = await fetch(`/data/${name}`);
+        const base = window.baseUrl;
+        const response = await fetch(`${base}/data/${name}`);
         if (response.status >= 200 && response.status < 300) {
           result = await response.json();
         }
