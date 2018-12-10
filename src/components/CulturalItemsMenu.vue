@@ -1,15 +1,12 @@
 <template>
   <div class="CulturalItemsMenu">
     <div class="CulturalItemsMenu-searchContainer">
-      <input type="text" class="CulturalItemsMenu-search" placeholder="Search" v-model="filter">
-      <button class="CulturalItemsMenu-searchButton">
-        <i class="fa fa-search"></i>
-      </button>
+      <input type="text" class="CulturalItemsMenu-search" placeholder=" Search" v-model="filter">
     </div>
     <ul class="CulturalItemsMenu-items">
       <li
         class="CulturalItemsMenu-item"
-        v-for="(value, key) in getValidItems"
+        v-for="(value, key) in getValidItems(validItems)"
         :key="key"
         :class="{isExpanded:isExpanded(key)}"
         >
@@ -25,7 +22,7 @@
         </div>
         <div>
           <ul class="CulturalItemsMenu-submenu">
-            <li v-for="(subvalue, subkey) in value" :key="subkey"
+            <li v-for="(subvalue, subkey) in getValidCategories(value)" :key="subkey"
               >
               <div class="CulturalItemsMenu-itemContainer"
                 @click="toggleExpanded(key, subkey)"
@@ -33,7 +30,8 @@
                 >
                 <img 
                   class="CulturalItemsMenu-icon"
-                  :src="getIcon(key)"
+                  :src="getIcon(subkey)"
+                  :data-icon="subkey"
                   :alt="subkey">
                 <span>
                   {{subkey}}
@@ -47,8 +45,8 @@
                   <div class="CulturalItemsMenu-placeItem"
                     @click="markerAction(finalvalue)"
                     >
-                    <img class="CulturalItemsMenu-icon" :src="getIcon(finalvalue.properties.tags)" :alt="finalvalue.properties.nombre">
-                    <span>{{ finalvalue.properties.nombre }}</span>
+                    <img class="CulturalItemsMenu-icon" :src="getIcon(finalvalue.properties.icono, true)" :alt="finalvalue.properties.nombre">
+                    <span class="CulturalItemsMenu-placeText">{{ finalvalue.properties.nombre }}</span>
                   </div>
                 </li>
               </ul>
@@ -62,7 +60,8 @@
 
 <script>
 import interact from 'interactjs';
-import {toTitleCase} from '../utils.js';
+
+import {getIconFromString, toTitleCase} from '../utils.js';
 
 export default {
   name: 'CulturalItemsMenu',
@@ -72,11 +71,10 @@ export default {
     filter: ''
   }),
   mounted() {
-    window.console.log(this.items);
     this.prepareDragAndDrop();
   },
   computed: {
-    getValidItems() {
+    validItems() {
       return Object.keys(this.items)
         .filter(item => item.indexOf("__") === -1)
         .reduce((acc, item) => {
@@ -86,8 +84,43 @@ export default {
     },
   },
   methods: {
+    isValidByFilter (value) {
+      return value.properties.nombre
+        .toLowerCase()
+        .includes(this.filter.toLowerCase());
+    },
     getValidPlaces(values) {
       return values.filter(this.isValidByFilter);
+    },
+    getValidItems(validItems){
+      const checkContent = item => 
+        Object.keys(this.getValidCategories(validItems[item])).length>0;
+
+      return Object.keys(validItems)
+        .filter(checkContent)
+        .reduce(this.elmsToObject(validItems), {})
+      ;
+    },
+    elmsToObject(values) {
+      return (acc, el) => { 
+        acc[el]=values[el];
+        return acc; 
+      };
+    },
+    getValidCategories(values) {
+      const flatName = (acc, e) => {
+        return `${acc}${e.properties.nombre}\t`;
+      };
+      const filterByName = (x) => {
+        return values[x].reduce(flatName, '').includes(this.filter)
+      };
+      if(values) {
+        return Object.keys(values)
+          .filter(filterByName)
+          .reduce(this.elmsToObject(values), {})
+          ;
+      }
+      return [];
     },
     markerAction(value){
       const lat = value.geometry.coordinates[1];
@@ -95,29 +128,24 @@ export default {
       const area = toTitleCase(value.properties.area);
       const name = value.properties.nombre;
       const marker_name = `${lat}_${lng}_${area}_${name}`.replace(/\s/g,'_');
-      const marker = this.markers[marker_name];
-      window.console.log(marker_name);
-      window.console.log(marker);
+      const marker = this.markers[marker_name.toLowerCase()];
       const coords = {
         lat,
         lng
       }
       this.map.flyTo(coords, 18);
       setTimeout(() => {
-        marker.openPopup();
+        marker && marker.openPopup();
       }, 2000);
     },
-    isValidByFilter (value) {
-      return value.properties.nombre
-        .toLowerCase()
-        .includes(this.filter.toLowerCase());
-    },
-    getIcon(elm) {
-      return this.icons[toTitleCase(elm)];
+    getIcon(elm, change) {
+      if(change) {
+        return elm.replace('markers/', 'SVG/');
+      }
+      return getIconFromString(elm);
     },
     toggleExpanded(...values){
       const value = values.map(x=>x.replace(/\s/g, '_')).join('_');
-      window.console.log(value);
       const expandedItems = {...this.expandedItems};
       expandedItems[value] = !expandedItems[value];
       this.$set(this, 'expandedItems', expandedItems);
@@ -225,6 +253,8 @@ export default {
   cursor: pointer;
   max-height: 80vh;
   overflow-y: scroll;
+  max-width: 450px;
+  box-shadow: 0 0 1px black;
 
   &-items {
     padding: 0.5em 1em;
@@ -276,6 +306,12 @@ export default {
     margin-right: 1em; 
   }
 
+  &-placeText {
+    word-wrap: break-word;
+    max-width: 200px;
+    line-height: 18px;
+  }
+
   &-submenu {
     margin: 0;
     max-height: 0;
@@ -302,6 +338,8 @@ export default {
     display: flex;
     align-items: center;
     justify-content: flex-start;
+    min-width: 300px;
+    padding: 0.3em 0 0.3em 0;
   }
 
   &-searchContainer {
@@ -317,6 +355,7 @@ export default {
   }
 
   &-search {
+    position: relative;
     width: 100%;
     padding: 5px;
     border-radius: 3px;
@@ -324,6 +363,9 @@ export default {
     background: transparent;
     &:focus {
       background: white;
+    }
+    &::placeholder {
+      font-family: Arial, FontAwesome;
     }
   }
 

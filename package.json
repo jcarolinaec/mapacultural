@@ -54,6 +54,9 @@
     "not ie <= 8"
   ],
   "vue": {
+    "baseUrl": "./"
+  },
+  "vue_release": {
     "baseUrl": "https://ogranada.github.io/mapacultural"
   }
 }

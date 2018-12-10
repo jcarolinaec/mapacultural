@@ -5,20 +5,21 @@
       :map="this.map"
       :markers="this.markers"
       :items="this.grouped"
-      :icons="this.categoryImages"/>
+      />
   </div>
 </template>
 
 <script>
+// :icons="this.categoryImages"
 import CulturalItemsMenu from "@/components/CulturalItemsMenu";
-import {getIconUrlFromTag, getIconFromString, toTitleCase} from '../utils.js';
+import {toTitleCase, getIconFromString} from '../utils.js';
 
 export default {
   name: "CulturalMap",
   data: () => ({
     map: null,
     grouped: {},
-    categoryImages: {},
+    // categoryImages: {},
     markers: {},
   }),
   methods: {
@@ -32,12 +33,21 @@ export default {
         layer.bindPopup(popupInfo);
       }
     },
+    getIcon(elm, change) {
+      if(change) {
+        return elm.replace('markers/', 'SVG/');
+      }
+      return getIconFromString(elm);
+    },
     async loadFile(name) {
       let result = {
         features: []
       };
       try {
-        const base = window.baseUrl;
+        let base = window.baseUrl;
+        if(!base) {
+          base = location.href.split('/#')[0];
+        }
         const response = await fetch(`${base}/data/${name}`);
         if (response.status >= 200 && response.status < 300) {
           result = await response.json();
@@ -49,34 +59,9 @@ export default {
     },
     async loadFiles() {
       let data = await Promise.all([
-        this.loadFile("Artes_escenicas_23.json"),
-        this.loadFile("Artes_visuales_22.json"),
-        this.loadFile("Artesanias_21.json"),
-        this.loadFile("Audiovisual_7.json"),
-        this.loadFile("Centros_Educativos_19.json"),
-        this.loadFile("Centros_religiosos_17.json"),
-        this.loadFile("Corto_Circuito_Ruta_25.json"),
-        this.loadFile("De_compras_18.json"),
-        this.loadFile("Deportes_20.json"),
-        this.loadFile("Diseo_16.json"),
-        this.loadFile("Entidades_gubernamentales_15.json"),
-        this.loadFile("Entretenimiento_y_ocio_nocturno_13.json"),
-        this.loadFile("Espacios_urbanos_12.json"),
-        this.loadFile("Gremiales_redes_civicas_14.json"),
-        this.loadFile("Grupos_sociales_comunitarios_10.json"),
-        this.loadFile("La_Cuadra_24.json"),
-        this.loadFile("Literatura_prensa_9.json"),
-        this.loadFile("Media_Interactiva_8.json"),
-        this.loadFile("Musica_6.json"),
-        this.loadFile("Patrimonio_Inmaterial_5.json"),
-        this.loadFile("Patrimonio_Material_4.json"),
-        this.loadFile("Patrimonio_natural_3.json"),
-        this.loadFile("Salud_bienestar_2.json"),
-        this.loadFile("Servcios_creativos_1.json"),
-        this.loadFile("Servcios_operadores_turist_0.json"),
-        this.loadFile("Servicios_gastronomicos_11.json")
+        this.loadFile("all.json")
       ]);
-      const categoryImages = {};
+      // const categoryImages = {};
       data.forEach(elm => {
         const me = this;
         let layer = window.L.geoJSON(elm, {
@@ -84,24 +69,17 @@ export default {
           pointToLayer: function(feature, latlng) {
             const nameStr = toTitleCase(feature.properties["nombre"]).trim();
             const areaStr = toTitleCase(feature.properties["area"]).trim();
-            const iconPathArea = getIconFromString(areaStr);
-            const iconPath = getIconUrlFromTag(feature);
-            if(iconPathArea) {
-              categoryImages[areaStr] = iconPathArea;
-            } else {
-              categoryImages[areaStr] = iconPath;
-            }
-            categoryImages[toTitleCase(feature.properties.tags).trim()] = iconPath;
+            const iconUrl = me.getIcon(feature.properties.icono, true);
             const icon = window.L.icon({
-              iconUrl: getIconUrlFromTag(feature),
+              iconUrl: iconUrl,
               iconSize: [40, 40]
             });
             const markerData = {};
-            if (icon) {
+            if (iconUrl && icon) {
               markerData["icon"] = icon;
             }
             const marker = window.L.marker(latlng, markerData);
-            me.markers[`${latlng.lat}_${latlng.lng}_${areaStr}_${nameStr}`.replace(/\s/g,'_')] = marker;
+            me.markers[`${latlng.lat}_${latlng.lng}_${areaStr}_${nameStr}`.replace(/\s/g,'_').toLowerCase()] = marker;
             return marker;
           }
         });
@@ -134,7 +112,7 @@ export default {
         return acc;
       }, {});
       this.grouped = grouped;
-      this.categoryImages = categoryImages;
+      // this.categoryImages = categoryImages;
     }
   },
   mounted() {
