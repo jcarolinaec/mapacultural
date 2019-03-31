@@ -6,6 +6,7 @@
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "generate": "cd cultural_data_generator && node generate.js",
+    "generate:page": "npm run build && mkdir page && cp -R .git page && cd page && git fetch --all && git checkout gh-pages && cp -R ../dist/* . && git add . && git commit -m 'Updates' && git push origin gh-pages ",
     "lint": "vue-cli-service lint",
     "test:unit": "vue-cli-service test:unit"
   },
@@ -59,6 +60,6 @@
     "baseUrl": "./"
   },
   "vue_release": {
-    "baseUrl": "https://ogranada.github.io/mapacultural"
+    "baseUrl": "https://jcarolinaec.github.io/mapacultural"
   }
 }
