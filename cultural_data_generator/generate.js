@@ -26,6 +26,7 @@ const TOKEN_PATH = 'token.json';
 // Load client secrets from a local file.
 fs.readFile('credentials.json', (err, content) => {
     if (err) {
+        console.log('credentials.json and token.json would be inside cultural_data_generator');
         return console.log('Error loading client secret file:', err);
     }
     // Authorize a client with credentials, then call the Google Sheets API.
@@ -102,7 +103,11 @@ function listMajors(auth) {
         spreadsheetId: '1zsG84c4nY666sicwFExwJ0hv4O2anj7Ey3SfSGyuB-0',
         range: 'A2:N400',
     }, (err, res) => {
-        if (err) return console.log('The API returned an error: ' + err);
+        if (err) {
+            console.log('Error generating all.json');
+            console.log('credentials.json and token.json would be inside cultural_data_generator');
+            return console.log('The API returned an error: ' + err);
+        }
         const rows = res.data.values;
         global.console.log(`Length: ${rows.length}`);
         if (rows.length) {
