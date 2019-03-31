@@ -12,30 +12,33 @@
 <script>
 // :icons="this.categoryImages"
 import CulturalItemsMenu from "@/components/CulturalItemsMenu";
-import {toTitleCase, getIconFromString} from '../utils.js';
+import { toTitleCase, getIconFromString } from "../utils.js";
 
 export default {
   name: "CulturalMap",
   data: () => ({
     map: null,
     grouped: {},
-    // categoryImages: {},
-    markers: {},
+    clusters: {},
+    markers: {}
   }),
   methods: {
     onEachFeature(feature, layer) {
-      let popupInfo = document.getElementById('popupMarkup').innerHTML;
+      let popupInfo = document.getElementById("popupMarkup").innerHTML;
       const keys = Object.keys(feature.properties);
-      if(keys.length && keys.length>0) {
+      if (keys.length && keys.length > 0) {
         for (let key in feature.properties) {
-          popupInfo = popupInfo.replace(`value_${key}`, feature.properties[key]);
+          popupInfo = popupInfo.replace(
+            `value_${key}`,
+            feature.properties[key]
+          );
         }
         layer.bindPopup(popupInfo);
       }
     },
     getIcon(elm, change) {
-      if(change) {
-        return elm.replace('markers/', 'SVG/');
+      if (change) {
+        return elm.replace("markers/", "SVG/");
       }
       return getIconFromString(elm);
     },
@@ -45,8 +48,8 @@ export default {
       };
       try {
         let base = window.baseUrl;
-        if(!base) {
-          base = location.href.split('/#')[0];
+        if (!base) {
+          base = location.href.split("/#")[0];
         }
         const response = await fetch(`${base}/data/${name}`);
         if (response.status >= 200 && response.status < 300) {
@@ -57,53 +60,72 @@ export default {
       }
       return result;
     },
-    async loadFiles() {
-      let data = await Promise.all([
-        this.loadFile("all.json")
-      ]);
-      // const categoryImages = {};
-      data.forEach(elm => {
-        const me = this;
-        let layer = window.L.geoJSON(elm, {
-          onEachFeature: this.onEachFeature,
-          pointToLayer: function(feature, latlng) {
-            const nameStr = toTitleCase(feature.properties["nombre"]).trim();
-            const areaStr = toTitleCase(feature.properties["area"]).trim();
-            const iconUrl = me.getIcon(feature.properties.icono, true);
-            const icon = window.L.icon({
-              iconUrl: iconUrl,
-              iconSize: [40, 40]
-            });
-            const markerData = {};
-            if (iconUrl && icon) {
-              markerData["icon"] = icon;
-            }
-            const marker = window.L.marker(latlng, markerData);
-            me.markers[`${latlng.lat}_${latlng.lng}_${areaStr}_${nameStr}`.replace(/\s/g,'_').toLowerCase()] = marker;
-            return marker;
-          }
-        });
-        let cluster = new window.L.MarkerClusterGroup({
-          showCoverageOnHover: false,
-          spiderfyDistanceMultiplier: 1
-        });
-        cluster.addLayer(layer);
-        cluster.addTo(this.map);
+    pointToLayer(feature, latlng) {
+      const nameStr = toTitleCase(feature.properties["nombre"]).trim();
+      const areaStr = toTitleCase(feature.properties["area"]).trim();
+      const iconUrl = this.getIcon(feature.properties.icono, true);
+      const icon = window.L.icon({
+        iconUrl: iconUrl,
+        iconSize: [40, 40]
       });
-      const grouped = data.reduce((acc, file) => {
+      const markerData = {};
+      if (iconUrl && icon) {
+        markerData["icon"] = icon;
+      }
+      const marker = window.L.marker(latlng, markerData);
+      this.markers[
+        `${latlng.lat}_${latlng.lng}_${areaStr}_${nameStr}`
+          .replace(/\s/g, "_")
+          .toLowerCase()
+      ] = marker;
+      return marker;
+    },
+    makeGeoJson(element) {
+      let layer = window.L.geoJSON(element, {
+        onEachFeature: this.onEachFeature,
+        pointToLayer: this.pointToLayer
+      });
+      return layer;
+    },
+    makeCluster(name) {
+      const cluster = new window.L.MarkerClusterGroup({
+        showCoverageOnHover: false,
+        spiderfyDistanceMultiplier: 1,
+        spiderfyOnMaxZoom: true,
+        zoomToBoundsOnClick: true
+      });
+      this.clusters[toTitleCase(name)] = cluster;
+      return cluster;
+    },
+    toAreas(acc, elm) {
+      const area = elm.features[0].properties.area;
+      if (!acc[area]) {
+        acc[area] = [];
+      }
+      acc[area].push(elm);
+      return acc;
+    },
+    processItemsForMenu(data) {
+      return data.reduce((acc, file) => {
         //*
         const existents = [];
         file.features.forEach(item => {
-          const area = toTitleCase(item.properties.area || '__undefined_area').trim();
-          const categoria = toTitleCase(item.properties.categoria || '__undefined_category').trim();
-          if(!acc[area]) {
+          const area = toTitleCase(
+            item.properties.area || "__undefined_area"
+          ).trim();
+          const categoria = toTitleCase(
+            item.properties.categoria || "__undefined_category"
+          ).trim();
+          if (!acc[area]) {
             acc[area] = {};
           }
-          if(!acc[area][categoria]) {
+          if (!acc[area][categoria]) {
             acc[area][categoria] = [];
           }
-          const elm_id = `${item.properties.nombre}${item.geometry.coordinates.join('_')}`;
-          if(!existents.includes(elm_id)) {
+          const elm_id = `${
+            item.properties.nombre
+          }${item.geometry.coordinates.join("_")}`;
+          if (!existents.includes(elm_id)) {
             existents.push(elm_id);
             acc[area][categoria].push(item);
           }
@@ -111,8 +133,20 @@ export default {
         // */
         return acc;
       }, {});
-      this.grouped = grouped;
-      // this.categoryImages = categoryImages;
+    },
+    async loadFiles() {
+      let data = await this.loadFile("all.json");
+      let areas = data.reduce(this.toAreas, {});
+      let areas_names = Object.keys(areas);
+      let grouped = {};
+      areas_names.forEach(name => {
+        const element = areas[name];
+        let cluster = this.makeCluster(name);
+        let layer = this.makeGeoJson(element);
+        cluster.addLayer(layer);
+        cluster.addTo(this.map);
+      });
+      this.grouped = this.processItemsForMenu(data);
     }
   },
   mounted() {

@@ -1,7 +1,14 @@
 <template>
   <div class="CulturalItemsMenu">
     <div class="CulturalItemsMenu-searchContainer">
-      <input type="text" class="CulturalItemsMenu-search" placeholder=" Search" v-model="filter">
+      <input
+        type="text"
+        class="CulturalItemsMenu-search"
+        placeholder=" Search"
+        v-model="filter"
+        @focus="isEditing=true"
+        @blur="isEditing=false"
+        >
     </div>
     <ul class="CulturalItemsMenu-items">
       <li
@@ -13,10 +20,12 @@
         <div class="CulturalItemsMenu-itemContainer"
           @click="toggleExpanded(key)" >
           <img 
-            class="CulturalItemsMenu-icon"
+            class="CulturalItemsMenu-icon isBig"
             :src="getIcon(key)"
+            @click="toggleCluster(key)"
             :alt="key">
-          <span>
+          <input type="checkbox" class="CulturalItemsMenu-categoryCheck" />
+          <span class="CulturalItemsMenu-description">
             {{key}}
           </span>
         </div>
@@ -33,7 +42,7 @@
                   :src="getIcon(subkey)"
                   :data-icon="subkey"
                   :alt="subkey">
-                <span>
+                <span class="CulturalItemsMenu-description">
                   {{subkey}}
                 </span>
               </div>
@@ -68,7 +77,8 @@ export default {
   props: ['items', 'icons', 'map', 'markers'],
   data: () => ({
     expandedItems: {},
-    filter: ''
+    filter: '',
+    isEditing: false
   }),
   mounted() {
     this.prepareDragAndDrop();
@@ -84,6 +94,9 @@ export default {
     },
   },
   methods: {
+    toggleCluster(key){
+      window.console.log('name:', key);
+    },
     isValidByFilter (value) {
       return value.properties.nombre
         .toLowerCase()
@@ -133,7 +146,10 @@ export default {
         lat,
         lng
       }
-      this.map.flyTo(coords, 18);
+      this.map.flyTo(coords, 18, {
+        duration: 0.25,
+        easeLinearity: 1
+      });
       setTimeout(() => {
         marker && marker.openPopup();
       }, 2000);
@@ -152,7 +168,7 @@ export default {
     },
     isExpanded(...values) {
       const value = values.map(x=>x.replace(/\s/g, '_')).join('_');
-      return this.expandedItems[value];
+      return this.expandedItems[value] || (this.filter !== '');
     },
     prepareDragAndDrop() {
       interact(".CulturalItemsMenu").draggable({
@@ -248,7 +264,7 @@ export default {
   right: 1em;
   z-index: 1000;
   background-color: rgba(190, 190, 190, 0.8);
-  padding: 0.5em;
+  padding: 1.5em 1em;
   border-radius: 2px;
   cursor: pointer;
   max-height: 80vh;
@@ -267,6 +283,10 @@ export default {
     align-items: center;
     position: relative;
     max-height: 48px;
+  }
+
+  &-description {
+    line-height: 16px;
   }
 
   &-submenu &-itemContainer {
@@ -300,10 +320,21 @@ export default {
 
   }
 
+  &-categoryCheck {
+    margin-right: 0.3em;
+  }
+
   &-icon {
     width: 20px;
     height: 30px;
-    margin-right: 1em; 
+    margin-right: 0.3em;
+    &.isDisabled {
+      filter: grayscale(100%);
+    }
+    &.isBig {
+      width: 25px;
+      height: 25px;
+    }
   }
 
   &-placeText {
@@ -330,6 +361,7 @@ export default {
 
     &.isExpanded {
       max-height: 500px;
+      overflow-x: hidden;
       overflow-y: scroll;
     }
   }
@@ -357,15 +389,23 @@ export default {
   &-search {
     position: relative;
     width: 100%;
-    padding: 5px;
+    padding: 5px 30%;
     border-radius: 3px;
     border: none;
     background: transparent;
-    &:focus {
-      background: white;
-    }
+    text-align: center;
+    transition: all 0.3s ease-in;
     &::placeholder {
       font-family: Arial, FontAwesome;
+      color: white;
+    }
+    &:focus {
+      padding: 5px 1em;
+      background: white;
+      text-align: left;
+      &::placeholder {
+        color: #777799;
+      }
     }
   }
 

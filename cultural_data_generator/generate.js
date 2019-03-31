@@ -100,15 +100,16 @@ function listMajors(auth) {
     const sheets = google.sheets({ version: 'v4', auth });
     sheets.spreadsheets.values.get({
         spreadsheetId: '1zsG84c4nY666sicwFExwJ0hv4O2anj7Ey3SfSGyuB-0',
-        range: 'A2:N300',
+        range: 'A2:N400',
     }, (err, res) => {
         if (err) return console.log('The API returned an error: ' + err);
         const rows = res.data.values;
         global.console.log(`Length: ${rows.length}`);
         if (rows.length) {
-            // const data = {};
             const data = [];
-            rows.map((row) => {
+            rows
+                .filter(row => row[c_type]==='punto')
+                .map((row, idx) => {
                 /*
                 if (!data[row[c_area]]) {
                     data[row[c_area]] = {};
@@ -142,16 +143,15 @@ function listMajors(auth) {
                         ]
                     }
                 };
-                // data[row[c_area]][row[c_categoria]].push(obj);
-                data.push(obj);
+                const nFinal = {
+                    "type": "FeatureCollection",
+                    "name": row[c_nombre],
+                    "crs": { "type": "name", "properties": { "name": `urn:ogc:def:crs:OGC:1.3:CRS${idx+1}` } },
+                    "features": [obj]
+                };
+                data.push(nFinal);
             });
-            const final = {
-                "type": "FeatureCollection",
-                "name": "All_Items",
-                "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
-                "features": data
-            };
-            fs.writeFileSync('../public/data/all.json', JSON.stringify(final, null, 2));
+            fs.writeFileSync('../public/data/all.json', JSON.stringify(data, null, 2));
         } else {
             console.log('No data found.');
         }
