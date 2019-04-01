@@ -14,6 +14,28 @@
 import CulturalItemsMenu from "@/components/CulturalItemsMenu";
 import { toTitleCase, getIconFromString } from "../utils.js";
 
+function processPopUpInfo(name, value) {
+  let res = value;
+  switch (name) {
+    case 'nombre':
+      res = toTitleCase(value)
+      break;
+    case 'imagen':
+      {
+        if(value.indexOf('http') == -1) {
+          res = `https://drive.google.com/uc?export=view&id=${value}`;
+        } else {
+          res = value;
+        }
+      }
+      break;
+    default:
+      res = value;
+      break;
+  }
+  return res;
+}
+
 export default {
   name: "CulturalMap",
   data: () => ({
@@ -28,9 +50,10 @@ export default {
       const keys = Object.keys(feature.properties);
       if (keys.length && keys.length > 0) {
         for (let key in feature.properties) {
+          console.log('>>>', key, 'by', feature.properties[key]);
           popupInfo = popupInfo.replace(
             `value_${key}`,
-            feature.properties[key]
+            processPopUpInfo(key, feature.properties[key])
           );
         }
         layer.bindPopup(popupInfo);
